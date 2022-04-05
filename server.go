@@ -19,8 +19,8 @@ func Run() {
 
 	// Routes
 	// ------
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Echo Boilerplate")
+	e.GET("/health-check", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
 	})
 
 	// Start server
@@ -57,6 +57,10 @@ func initMiddlerwares(e *echo.Echo) {
 	// Recover
 	// -------
 	e.Use(middleware.Recover())
+
+	// Logger
+	// ------
+	e.Use(middleware.Logger())
 }
 
 // CustomHTTPErrorHandler
@@ -67,7 +71,7 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 	}
 	c.Logger().Error(err)
 
-	log.Printf("Code: %v\n", code)
+	log.Printf("======> Code: %v\n", code)
 	// errorPage := fmt.Sprintf("%d.html", code)
 	// if err := c.File(errorPage); err != nil {
 	// 	c.Logger().Error(err)
