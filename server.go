@@ -2,9 +2,9 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/fabienbellanger/echo-boilerplate/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
@@ -20,15 +20,16 @@ func Run() {
 	// Routes
 	// ------
 	e.GET("/health-check", func(c echo.Context) error {
-		return c.String(http.StatusOK, "OK")
+		return echo.NewHTTPError(http.StatusUnauthorized, nil)
+		// return c.String(http.StatusOK, "OK")
 	})
 
 	// Start server
 	// ------------
 	s := &http.Server{
 		Addr: fmt.Sprintf("%s:%s", viper.GetString("APP_ADDR"), viper.GetString("APP_PORT")),
-		// ReadTimeout:  time.Duration(viper.GetInt("server.readTimeout")) * time.Second,
-		// WriteTimeout: time.Duration(viper.GetInt("server.writeTimeout")) * time.Second,
+		// TODO: ReadTimeout:  time.Duration(viper.GetInt("server.readTimeout")) * time.Second,
+		// TODO: WriteTimeout: time.Duration(viper.GetInt("server.writeTimeout")) * time.Second,
 	}
 	e.Logger.Fatal(e.StartServer(s))
 }
@@ -66,14 +67,28 @@ func initMiddlerwares(e *echo.Echo) {
 // CustomHTTPErrorHandler
 func customHTTPErrorHandler(err error, c echo.Context) {
 	code := http.StatusInternalServerError
-	if he, ok := err.(*echo.HTTPError); ok {
-		code = he.Code
+	var msg interface{}
+	if httpError, ok := err.(*echo.HTTPError); ok {
+		code = httpError.Code
+		msg = httpError.Message
 	}
-	c.Logger().Error(err)
 
-	log.Printf("======> Code: %v\n", code)
-	// errorPage := fmt.Sprintf("%d.html", code)
-	// if err := c.File(errorPage); err != nil {
-	// 	c.Logger().Error(err)
-	// }
+	switch code {
+	case http.StatusBadRequest:
+		// 400
+		c.JSON(code, utils.HTTPError{Code: code, Message: "Bad Request", Details: msg})
+	case http.StatusUnauthorized:
+		// 401
+		c.JSON(code, utils.HTTPError{Code: code, Message: "Unauthorized", Details: msg})
+	case http.StatusNotFound:
+		// 404
+		c.JSON(code, utils.HTTPError{Code: code, Message: "Resource Not Found", Details: msg})
+	case http.StatusInternalServerError:
+		// 500
+		c.Logger().Error(err)
+		c.JSON(code, utils.HTTPError{Code: code, Message: "Internal Server Error", Details: msg})
+	default:
+		c.Logger().Error(err)
+		c.JSON(code, utils.HTTPError{Code: code, Message: "Error", Details: msg})
+	}
 }

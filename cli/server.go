@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"log"
+
 	server "github.com/fabienbellanger/echo-boilerplate"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
@@ -19,7 +22,18 @@ var serverCmd = &cobra.Command{
 }
 
 func startServer() {
-	initConfig()
+	// Configuration initialization
+	// ----------------------------
+	db, err := initConfigLoggerDatabase(true)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// Database migrations
+	// -------------------
+	if viper.GetBool("DB_USE_AUTOMIGRATIONS") {
+		db.MakeMigrations()
+	}
 
 	// Start server
 	// ------------
