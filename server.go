@@ -4,24 +4,30 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fabienbellanger/echo-boilerplate/db"
 	"github.com/fabienbellanger/echo-boilerplate/utils"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // Run web server
-func Run() {
+func Run(logger *zap.Logger, db *db.DB) {
 	e := echo.New()
 
 	initConfig(e)
-	initMiddlerwares(e)
+	initMiddlerwares(e, logger)
 
 	// Routes
 	// ------
+
+	// TODO: JWT: https://echo.labstack.com/middleware/jwt/
+
 	e.GET("/health-check", func(c echo.Context) error {
-		return echo.NewHTTPError(http.StatusUnauthorized, nil)
-		// return c.String(http.StatusOK, "OK")
+		// return echo.NewHTTPError(http.StatusUnauthorized, nil)
+		return c.String(http.StatusOK, "OK")
 	})
 
 	// Start server
@@ -54,14 +60,44 @@ func initConfig(e *echo.Echo) {
 }
 
 // Initialize server middlewares
-func initMiddlerwares(e *echo.Echo) {
+func initMiddlerwares(e *echo.Echo, logger *zap.Logger) {
 	// Recover
 	// -------
 	e.Use(middleware.Recover())
 
 	// Logger
 	// ------
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
+	e.Use(zapLogger(logger))
+
+	// Request ID
+	// ----------
+	e.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
+		Generator: func() string {
+			return uuid.New().String()
+		},
+	}))
+
+	// CORS
+	// ----
+	// TODO: https://echo.labstack.com/middleware/cors/
+
+	// Basic Auth
+	// ----------
+	// TODO: https://echo.labstack.com/middleware/basic-auth/
+
+	// Prometheus
+	// ----------
+	// TODO: https://echo.labstack.com/middleware/prometheus/
+
+	// Rate Limiter
+	// ------------
+	// TODO: https://echo.labstack.com/middleware/rate-limiter/
+
+	// Secure
+	// ------
+	// TODO: https://echo.labstack.com/middleware/secure/
+	e.Use(middleware.Secure())
 }
 
 // CustomHTTPErrorHandler

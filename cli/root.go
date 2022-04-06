@@ -3,9 +3,12 @@ package cli
 import (
 	"time"
 
+	server "github.com/fabienbellanger/echo-boilerplate"
 	"github.com/fabienbellanger/echo-boilerplate/db"
+	"github.com/logrusorgru/aurora/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const version = "0.0.1"
@@ -28,11 +31,21 @@ func initConfig() error {
 	return viper.ReadInConfig()
 }
 
-func initConfigLoggerDatabase(initDB bool) (database *db.DB, err error) {
+func initConfigLoggerDatabase(initLogger, initDB bool) (logger *zap.Logger, database *db.DB, err error) {
 	// Configuration initialization
 	// ----------------------------
 	if err = initConfig(); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	// Logger initialization
+	// ---------------------
+	if initLogger {
+		logger, err = server.InitLogger()
+		if err != nil {
+			return nil, nil, err
+		}
+		defer logger.Sync()
 	}
 
 	// Database connection
@@ -53,9 +66,53 @@ func initConfigLoggerDatabase(initDB bool) (database *db.DB, err error) {
 			ConnMaxLifetime: viper.GetDuration("DB_CONN_MAX_LIFETIME") * time.Hour,
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return database, err
+	return logger, database, err
+}
+
+func displayLogLevel(l string) aurora.Value {
+	switch l {
+	case "DEBUG":
+		return aurora.Cyan(l)
+	case "INFO":
+		return aurora.Green(l)
+	case "WARN":
+		return aurora.Brown(l)
+	default:
+		return aurora.Red(l)
+	}
+}
+
+func displayLogMethod(m string) aurora.Value {
+	switch m {
+	case "GET":
+		return aurora.Cyan(m)
+	case "POST":
+		return aurora.Blue(m)
+	case "PUT":
+		return aurora.Brown(m)
+	case "PATCH":
+		return aurora.Magenta(m)
+	case "DELETE":
+		return aurora.Red(m)
+	default:
+		return aurora.Gray(12, m)
+	}
+}
+
+func displayLogStatusCode(c uint) aurora.Value {
+	if c < 200 {
+		return aurora.Cyan(c)
+	} else if c < 300 {
+		return aurora.Green(c)
+	} else if c < 400 {
+		return aurora.Magenta(c)
+	} else if c < 500 {
+		return aurora.Brown(c)
+	} else {
+		return aurora.Red(c)
+	}
 }

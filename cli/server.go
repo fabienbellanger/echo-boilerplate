@@ -14,8 +14,8 @@ func init() {
 
 var serverCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Start server",
-	Long:  `Start server`,
+	Short: "Start Web Server",
+	Long:  `Start Web Server`,
 	Run: func(cmd *cobra.Command, args []string) {
 		startServer()
 	},
@@ -24,18 +24,18 @@ var serverCmd = &cobra.Command{
 func startServer() {
 	// Configuration initialization
 	// ----------------------------
-	db, err := initConfigLoggerDatabase(true)
+	logger, db, err := initConfigLoggerDatabase(true, true)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	// Database migrations
 	// -------------------
-	if viper.GetBool("DB_USE_AUTOMIGRATIONS") {
+	if viper.GetBool("GORM_AUTOMIGRATIONS") {
 		db.MakeMigrations()
 	}
 
 	// Start server
 	// ------------
-	server.Run()
+	server.Run(logger, db)
 }
