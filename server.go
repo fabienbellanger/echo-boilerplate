@@ -90,7 +90,6 @@ func initMiddlerwares(e *echo.Echo, logger *zap.Logger) {
 
 	// Basic Auth
 	// ----------
-	// TODO: https://echo.labstack.com/middleware/basic-auth/
 	basicAuthConfig := middleware.BasicAuthConfig{
 		Validator: func(username, password string, c echo.Context) (bool, error) {
 			basicAuthUsername := viper.GetString("SERVER_BASICAUTH_USERNAME")
@@ -107,13 +106,17 @@ func initMiddlerwares(e *echo.Echo, logger *zap.Logger) {
 
 	// Pprof
 	// -----
-	pprof := pprof.New(protectedGroup)
-	pprof.Routes()
+	if viper.GetBool("SERVER_PROMETHEUS") {
+		pprof := pprof.New(protectedGroup)
+		pprof.Routes()
+	}
 
 	// Prometheus
 	// ----------
-	p := prometheus.NewPrometheus(viper.GetString("APP_NAME"), nil)
-	p.Use(e)
+	if viper.GetBool("SERVER_PROMETHEUS") {
+		p := prometheus.NewPrometheus(viper.GetString("APP_NAME"), nil)
+		p.Use(e)
+	}
 
 	// Rate Limiter
 	// ------------
