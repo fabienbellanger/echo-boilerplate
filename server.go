@@ -3,14 +3,19 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/fabienbellanger/echo-boilerplate/db"
+	"github.com/fabienbellanger/echo-boilerplate/delivery/pprof"
 	"github.com/fabienbellanger/echo-boilerplate/utils"
+	"github.com/fabienbellanger/goutils"
 	"github.com/google/uuid"
+	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"golang.org/x/time/rate"
 )
 
 // Run web server
@@ -22,13 +27,7 @@ func Run(logger *zap.Logger, db *db.DB) {
 
 	// Routes
 	// ------
-
-	// TODO: JWT: https://echo.labstack.com/middleware/jwt/
-
-	e.GET("/health-check", func(c echo.Context) error {
-		// return echo.NewHTTPError(http.StatusUnauthorized, nil)
-		return c.String(http.StatusOK, "OK")
-	})
+	Routes(e, db, logger)
 
 	// Start server
 	// ------------
@@ -80,23 +79,77 @@ func initMiddlerwares(e *echo.Echo, logger *zap.Logger) {
 
 	// CORS
 	// ----
-	// TODO: https://echo.labstack.com/middleware/cors/
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     viper.GetStringSlice("CORS_ALLOW_ORIGINS"),
+		AllowHeaders:     viper.GetStringSlice("CORS_EXPOSE_HEADERS"),
+		AllowMethods:     viper.GetStringSlice("CORS_ALLOW_METHODS"),
+		AllowCredentials: viper.GetBool("CORS_ALLOW_CREDENTIALS"),
+		ExposeHeaders:    viper.GetStringSlice("CORS_EXPOSE_HEADERS"),
+		MaxAge:           int(12 * time.Hour),
+	}))
 
 	// Basic Auth
 	// ----------
 	// TODO: https://echo.labstack.com/middleware/basic-auth/
+	basicAuthConfig := middleware.BasicAuthConfig{
+		Validator: func(username, password string, c echo.Context) (bool, error) {
+			basicAuthUsername := viper.GetString("SERVER_BASICAUTH_USERNAME")
+			basicAuthPassword := viper.GetString("SERVER_BASICAUTH_PASSWORD")
+
+			if username == basicAuthUsername && password == basicAuthPassword {
+				return true, nil
+			}
+			return false, nil
+		},
+	}
+	protectedGroup := e.Group("/private")
+	protectedGroup.Use(middleware.BasicAuthWithConfig(basicAuthConfig))
+
+	// Pprof
+	// -----
+	pprof := pprof.New(protectedGroup)
+	pprof.Routes()
 
 	// Prometheus
 	// ----------
-	// TODO: https://echo.labstack.com/middleware/prometheus/
+	p := prometheus.NewPrometheus(viper.GetString("APP_NAME"), nil)
+	p.Use(e)
 
 	// Rate Limiter
 	// ------------
 	// TODO: https://echo.labstack.com/middleware/rate-limiter/
+	if viper.GetBool("LIMITER_ENABLE") {
+		rateLimiterConfig := middleware.RateLimiterConfig{
+			Skipper: func(c echo.Context) bool {
+				excludedIP := viper.GetStringSlice("LIMITER_EXCLUDE_IP")
+				if len(excludedIP) == 0 {
+					return false
+				}
+				return goutils.StringInSlice(c.RealIP(), excludedIP)
+			},
+			Store: middleware.NewRateLimiterMemoryStoreWithConfig(
+				middleware.RateLimiterMemoryStoreConfig{
+					Rate:      rate.Limit(viper.GetFloat64("LIMITER_LIMIT")), // req/sec
+					Burst:     viper.GetInt("LIMITER_BURST"),
+					ExpiresIn: 60 * time.Second, // time.Duration(viper.GetInt("LIMITER_EXPIRATION")) * time.Second,
+				},
+			),
+			IdentifierExtractor: func(c echo.Context) (string, error) {
+				return c.RealIP(), nil
+			},
+			ErrorHandler: func(context echo.Context, err error) error {
+				return context.JSON(http.StatusForbidden, nil)
+			},
+			DenyHandler: func(context echo.Context, identifier string, err error) error {
+				return context.JSON(http.StatusTooManyRequests, nil)
+			},
+		}
+		e.Use(middleware.RateLimiterWithConfig(rateLimiterConfig))
+		// e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(1)))
+	}
 
 	// Secure
 	// ------
-	// TODO: https://echo.labstack.com/middleware/secure/
 	e.Use(middleware.Secure())
 }
 
