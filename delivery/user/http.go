@@ -3,8 +3,10 @@ package user
 import (
 	"net/http"
 
+	"github.com/fabienbellanger/echo-boilerplate/entities"
 	"github.com/fabienbellanger/echo-boilerplate/store"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
 type UserHandler struct {
@@ -40,8 +42,15 @@ func (u *UserHandler) Routes() {
 	}
 }
 
+// Login route
 func (u UserHandler) Login(c echo.Context) error {
-	return c.String(http.StatusOK, "Login route")
+	claims := entities.NewClaims("ID", "Username", "Lastname", "Firstname", viper.GetInt("JWT_LIFETIME"))
+	token, err := claims.GenerateJWT(viper.GetString("JWT_ALGO"), viper.GetString("JWT_SECRET"))
+	if err != nil {
+		return err
+	}
+
+	return c.String(http.StatusOK, "Login route, token: "+token)
 }
 
 // Register a new user
