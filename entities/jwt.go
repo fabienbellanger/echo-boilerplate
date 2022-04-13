@@ -26,12 +26,12 @@ func NewClaims(id, username, firstname, lastname string, lifetime int) *Claims {
 		lastname,
 		firstname,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * time.Duration(lifetime)).Unix(),
-			IssuedAt:  time.Now().Unix(),
-			NotBefore: time.Now().Unix(),
 			Subject:   "API authentication", // Subject of the JWT (the user)
 			Issuer:    "API",                // Issuer of the JWT
 			Audience:  "Client",             // Recipient for which the JWT is intended
+			ExpiresAt: time.Now().Add(time.Minute * time.Duration(lifetime)).Unix(),
+			IssuedAt:  time.Now().Unix(),
+			NotBefore: time.Now().Unix(),
 		},
 	}
 }

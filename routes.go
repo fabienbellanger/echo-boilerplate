@@ -18,6 +18,21 @@ func Routes(e *echo.Echo, db *db.DB, logger *zap.Logger) {
 	apiRoutes(e, db, logger)
 }
 
+// Initialize route protection with JWT
+func initJWT(g *echo.Group) {
+	// Protected routes
+	// ----------------
+	jwtConfig := middleware.JWTConfig{
+		ContextKey:    "user",
+		TokenLookup:   "header:" + echo.HeaderAuthorization,
+		AuthScheme:    "Bearer",
+		SigningMethod: viper.GetString("JWT_ALGO"),
+		Claims:        &entities.Claims{},
+		SigningKey:    []byte(viper.GetString("JWT_SECRET")),
+	}
+	g.Use(middleware.JWTWithConfig(jwtConfig))
+}
+
 // Web routes
 func webRoutes(e *echo.Echo, logger *zap.Logger) {
 	g := e.Group("")
@@ -32,6 +47,8 @@ func webRoutes(e *echo.Echo, logger *zap.Logger) {
 func apiRoutes(e *echo.Echo, db *db.DB, logger *zap.Logger) {
 	v1 := e.Group("/api/v1")
 
+	// Public routes
+	// -------------
 	// TODO: Login => Improve
 	authGroup := v1.Group("")
 	auth := user.New(authGroup, nil)
@@ -39,15 +56,7 @@ func apiRoutes(e *echo.Echo, db *db.DB, logger *zap.Logger) {
 
 	// Protected routes
 	// ----------------
-	jwtConfig := middleware.JWTConfig{
-		ContextKey:    "user",
-		TokenLookup:   "header:" + echo.HeaderAuthorization,
-		AuthScheme:    "Bearer",
-		SigningMethod: viper.GetString("JWT_ALGO"),
-		Claims:        &entities.Claims{},
-		SigningKey:    []byte(viper.GetString("JWT_SECRET")),
-	}
-	v1.Use(middleware.JWTWithConfig(jwtConfig))
+	initJWT(v1)
 
 	// User
 	userRoutes := v1.Group("/users")
