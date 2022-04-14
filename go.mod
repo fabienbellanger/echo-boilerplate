@@ -11,13 +11,13 @@ require (
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/cobra v1.4.0
-	github.com/spf13/viper v1.10.1
+	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/zap v1.21.0
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.4
-	gorm.io/plugin/prometheus v0.0.0-20220223061010-d8bdd50fdfc7
+	gorm.io/plugin/prometheus v0.0.0-20220414034526-3a4b06c41cbf
 )
 
 require (
@@ -41,6 +41,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect

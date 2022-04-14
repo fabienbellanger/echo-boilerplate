@@ -6,6 +6,7 @@ import (
 	"github.com/fabienbellanger/echo-boilerplate/db"
 	"github.com/fabienbellanger/echo-boilerplate/delivery/user"
 	"github.com/fabienbellanger/echo-boilerplate/entities"
+	storeUser "github.com/fabienbellanger/echo-boilerplate/store/user"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
@@ -47,11 +48,15 @@ func webRoutes(e *echo.Echo, logger *zap.Logger) {
 func apiRoutes(e *echo.Echo, db *db.DB, logger *zap.Logger) {
 	v1 := e.Group("/api/v1")
 
+	// Stores
+	// ------
+	userStore := storeUser.New(db)
+
 	// Public routes
 	// -------------
 	// TODO: Login => Improve
 	authGroup := v1.Group("")
-	auth := user.New(authGroup, nil)
+	auth := user.New(authGroup, userStore)
 	authGroup.POST("/login", auth.Login)
 
 	// Protected routes
@@ -60,6 +65,6 @@ func apiRoutes(e *echo.Echo, db *db.DB, logger *zap.Logger) {
 
 	// User
 	userRoutes := v1.Group("/users")
-	user := user.New(userRoutes, nil)
+	user := user.New(userRoutes, userStore)
 	user.Routes()
 }
