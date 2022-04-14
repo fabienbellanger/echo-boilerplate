@@ -61,7 +61,7 @@ func apiRoutes(e *echo.Echo, db *db.DB, logger *zap.Logger) {
 
 	// Protected routes
 	// ----------------
-	initJWT(v1)
+	//initJWT(v1)
 
 	// User
 	userRoutes := v1.Group("/users")
